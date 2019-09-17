@@ -1,2 +1,2 @@
 all:
-	g++ jetson_clocks.cpp -I ./ -o jetson_clocks
+	g++ example.cpp -I ./ -o jetson_clocks -std=c++17

@@ -1,0 +1,4 @@
+jetson_clocks
+*.swp
+build/*
+*.pyc
