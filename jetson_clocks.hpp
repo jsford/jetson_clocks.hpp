@@ -23,6 +23,10 @@
 // Jetson Nano, but I will happily accept pull requests to
 // fix bugs on any platform.
 //
+// This code is not thread safe (yet?). Do not manipulate power
+// state across multiple threads without implementing your own
+// synchronization.
+//
 // License:
 //   Copyright (c) 2019 Jordan Ford
 //
@@ -65,6 +69,9 @@ std::string get_machine();
 
 /// Set the fan pwm speed of this board.
 bool set_fan_speed(unsigned char speed);
+
+/// Get the fan pwm speed of this board.
+unsigned char get_fan_speed();
 
 /// Get all available GPU clock frequencies.
 std::vector<long int> get_gpu_available_freqs();
@@ -231,6 +238,25 @@ bool set_fan_speed(unsigned char speed) {
 
   std::string speed_string = to_string(static_cast<int>(speed));
   return write_file("/sys/kernel/debug/tegra_fan/target_pwm", speed_string);
+}
+
+unsigned char get_fan_speed() {
+  if (!running_as_root()) {
+    std::cout << "Error: Cannot read fan speed without running as root." << std::endl;
+    return false;
+  }
+
+  // Jetson-TK1 CPU fan is always ON.
+  if (get_machine() == "jetson-tk1") {
+    return 255;
+  }
+
+  if (!file_exists("/sys/kernel/debug/tegra_fan/target_pwm")) {
+    std::cout << "Can't access Fan!" << std::endl;
+    return 0;
+  }
+
+  return std::stoi(read_file("/sys/kernel/debug/tegra_fan/target_pwm"));
 }
 
 std::vector<long int> get_gpu_available_freqs() {
