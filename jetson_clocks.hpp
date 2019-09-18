@@ -268,8 +268,8 @@ void set_fan_speed(unsigned char speed) {
 
   if (file_writable("/sys/kernel/debug/tegra_fan/target_pwm")) {
     path = "/sys/kernel/debug/tegra_fan/target_pwm";
-  } else if (file_writable("/sys/devices/pwm-fan/target-pwm")) {
-    path = "/sys/devices/pwm-fan/target-pwm";
+  } else if (file_writable("/sys/devices/pwm-fan/target_pwm")) {
+    path = "/sys/devices/pwm-fan/target_pwm";
   } else {
     throw JetsonClocksException("fan speed file not found.");
   }
@@ -293,8 +293,8 @@ unsigned char get_fan_speed() {
 
   if (file_writable("/sys/kernel/debug/tegra_fan/target_pwm")) {
     path = "/sys/kernel/debug/tegra_fan/target_pwm";
-  } else if (file_writable("/sys/devices/pwm-fan/target-pwm")) {
-    path = "/sys/devices/pwm-fan/target-pwm";
+  } else if (file_writable("/sys/devices/pwm-fan/target_pwm")) {
+    path = "/sys/devices/pwm-fan/target_pwm";
   } else {
     throw JetsonClocksException("fan speed file not found.");
   }
