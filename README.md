@@ -11,9 +11,6 @@ Jetson Nano, Jetson TX1, Jetson TX2(i),
 and Jetson AGX Xavier.
 
 ### Notes:
-This file uses C++17 functionality from the std::filesystem 
-library which first became available in g++-8.
-
 Thus far, it has only been tested on the Jetson TX2 and 
 Jetson Nano, but I will happily accept pull requests to
 fix bugs on any platform.

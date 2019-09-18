@@ -13,11 +13,13 @@ int main(int argc, char *argv[]) {
   std::cout << "MACHINE TYPE: " << get_machine() << std::endl;
 
   // Test Fan Control
-  set_fan_speed(255);
+  if(!set_fan_speed(255)) { return 1; }
   std::cout << "FAN SPEED: " << (int)get_fan_speed() << std::endl;
 
   // Test GPU Controls
   auto gpu_freqs = get_gpu_available_freqs();
+  if(gpu_freqs.size() == 0) { return 1; }
+
   auto gpu_min_freq = gpu_freqs[0];
   auto gpu_max_freq = gpu_freqs[gpu_freqs.size()-1];
   set_gpu_freq_range(gpu_min_freq, gpu_max_freq);
@@ -26,7 +28,7 @@ int main(int argc, char *argv[]) {
   long int min_emc_freq, max_emc_freq;
   std::tie(min_emc_freq, max_emc_freq) = get_emc_available_freq_range();
   std::cout << "EMC Range [" << min_emc_freq << ", " << max_emc_freq << "]\n";
-  set_emc_freq(max_emc_freq);
+  if(!set_emc_freq(max_emc_freq)) { return 1; }
   std::cout << "-------------------------------------------------------------" << std::endl;
 
   // Test CPU Controls
