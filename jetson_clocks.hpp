@@ -264,12 +264,18 @@ void set_fan_speed(unsigned char speed) {
     return;
   }
 
-  if (!file_writable("/sys/kernel/debug/tegra_fan/target_pwm")) {
-    throw JetsonClocksException("fan speed file is not writable.");
+  std::string path = "";
+
+  if (file_writable("/sys/kernel/debug/tegra_fan/target_pwm")) {
+    path = "/sys/kernel/debug/tegra_fan/target_pwm";
+  } else if (file_writable("/sys/devices/pwm-fan/target-pwm")) {
+    path = "/sys/devices/pwm-fan/target-pwm";
+  } else {
+    throw JetsonClocksException("fan speed file not found.");
   }
 
   std::string speed_string = to_string(static_cast<int>(speed));
-  write_file("/sys/kernel/debug/tegra_fan/target_pwm", speed_string);
+  write_file(path, speed_string);
 }
 
 unsigned char get_fan_speed() {
@@ -283,11 +289,17 @@ unsigned char get_fan_speed() {
     return 255;
   }
 
-  if (!file_exists("/sys/kernel/debug/tegra_fan/target_pwm")) {
-    throw JetsonClocksException("fan speed file does not exist.");
+  std::string path = "";
+
+  if (file_writable("/sys/kernel/debug/tegra_fan/target_pwm")) {
+    path = "/sys/kernel/debug/tegra_fan/target_pwm";
+  } else if (file_writable("/sys/devices/pwm-fan/target-pwm")) {
+    path = "/sys/devices/pwm-fan/target-pwm";
+  } else {
+    throw JetsonClocksException("fan speed file not found.");
   }
 
-  return std::stoi(read_file("/sys/kernel/debug/tegra_fan/target_pwm"));
+  return std::stoi(read_file(path));
 }
 
 std::vector<long int> get_gpu_available_freqs() {
