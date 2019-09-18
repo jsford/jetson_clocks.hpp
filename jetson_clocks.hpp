@@ -56,9 +56,9 @@
 //                    INTERFACE                           //
 //--------------------------------------------------------//
 
+#include <stdexcept>
 #include <string>
 #include <vector>
-#include <stdexcept>
 
 namespace jetson_clocks {
 
@@ -81,7 +81,7 @@ unsigned char get_fan_speed();
 std::vector<long int> get_gpu_available_freqs();
 
 /// Set the GPU min and max frequencies.
-bool set_gpu_freq_range(long int min_freq, long int max_freq);
+void set_gpu_freq_range(long int min_freq, long int max_freq);
 
 /// Get the allowed EMC clock freqs.
 std::vector<long int> get_emc_available_freqs();
@@ -123,10 +123,11 @@ void set_cpu_min_freq(int cpu_id, long int min_freq);
 void set_cpu_max_freq(int cpu_id, long int max_freq);
 
 /// Functions will throw this exception if they cannot fulfill their purpose.
-struct JetsonClocksException : public virtual std::runtime_error
-{
-    explicit JetsonClocksException( const char* message ) : std::runtime_error(message) {}
-    explicit JetsonClocksException( const std::string& message ) : std::runtime_error(message.c_str()) {}
+struct JetsonClocksException : public virtual std::runtime_error {
+  explicit JetsonClocksException(const char *message)
+      : std::runtime_error(message) {}
+  explicit JetsonClocksException(const std::string &message)
+      : std::runtime_error(message.c_str()) {}
 };
 
 } // namespace jetson_clocks
@@ -254,12 +255,13 @@ std::string get_machine() {
 
 void set_fan_speed(unsigned char speed) {
   if (!running_as_root()) {
-    throw JetsonClocksException("fan speed can not be set without root permissions.");
+    throw JetsonClocksException(
+        "fan speed can not be set without root permissions.");
   }
 
   // Jetson-TK1 CPU fan is always ON.
   if (get_machine() == "jetson-tk1") {
-      return;
+    return;
   }
 
   if (!file_writable("/sys/kernel/debug/tegra_fan/target_pwm")) {
@@ -272,7 +274,8 @@ void set_fan_speed(unsigned char speed) {
 
 unsigned char get_fan_speed() {
   if (!running_as_root()) {
-    throw JetsonClocksException("fan speed cannot be read without root permissions.");
+    throw JetsonClocksException(
+        "fan speed cannot be read without root permissions.");
   }
 
   // Jetson-TK1 CPU fan is always ON.
@@ -289,7 +292,8 @@ unsigned char get_fan_speed() {
 
 std::vector<long int> get_gpu_available_freqs() {
   if (!running_as_root()) {
-      throw JetsonClocksException("cannot read gpu available freqs without root permissions.");
+    throw JetsonClocksException(
+        "cannot read gpu available freqs without root permissions.");
   }
 
   std::string soc_family = get_soc_family();
@@ -303,9 +307,9 @@ std::vector<long int> get_gpu_available_freqs() {
     GPU_AVAILABLE_FREQS =
         "/sys/devices/57000000.gpu/devfreq/57000000.gpu/available_frequencies";
   } else {
-      throw JetsonClocksException(
-              "cannot read gpu available freqs with unsupported SOC family " +
-              soc_family + ".");
+    throw JetsonClocksException(
+        "cannot read gpu available freqs with unsupported SOC family " +
+        soc_family + ".");
   }
 
   std::string speedstr = read_file(GPU_AVAILABLE_FREQS);
@@ -321,9 +325,10 @@ std::vector<long int> get_gpu_available_freqs() {
   return speeds;
 }
 
-bool set_gpu_freq_range(long int min_freq, long int max_freq) {
+void set_gpu_freq_range(long int min_freq, long int max_freq) {
   if (!running_as_root()) {
-      throw JetsonClocksException("cannot set gpu freq range without root permissions.");
+    throw JetsonClocksException(
+        "cannot set gpu freq range without root permissions.");
   }
 
   std::vector<long int> available_freqs = get_gpu_available_freqs();
@@ -331,13 +336,15 @@ bool set_gpu_freq_range(long int min_freq, long int max_freq) {
   // Min freq must be available.
   if (std::find(available_freqs.begin(), available_freqs.end(), min_freq) ==
       available_freqs.end()) {
-      throw JetsonClocksException("selected gpu minimum frequency is not available.");
+    throw JetsonClocksException(
+        "selected gpu minimum frequency is not available.");
   }
 
   // Max freq must be available.
   if (std::find(available_freqs.begin(), available_freqs.end(), max_freq) ==
       available_freqs.end()) {
-      throw JetsonClocksException("selected gpu maximum frequency is not available.");
+    throw JetsonClocksException(
+        "selected gpu maximum frequency is not available.");
   }
 
   std::string soc_family = get_soc_family();
@@ -360,7 +367,9 @@ bool set_gpu_freq_range(long int min_freq, long int max_freq) {
     GPU_RAIL_GATE =
         "/sys/devices/57000000.gpu/devfreq/57000000.gpu/device/railgate_enable";
   } else {
-      throw JetsonClocksException("cannot gpu frequency range with unsupported SOC family "+soc_family+".");
+    throw JetsonClocksException(
+        "cannot gpu frequency range with unsupported SOC family " + soc_family +
+        ".");
   }
 
   write_file(GPU_MIN_FREQ, to_string(min_freq));
@@ -370,7 +379,8 @@ bool set_gpu_freq_range(long int min_freq, long int max_freq) {
 
 std::vector<long int> get_emc_available_freqs() {
   if (!running_as_root()) {
-    throw JetsonClocksException("cannot read EMC available freqs without root permissions.");
+    throw JetsonClocksException(
+        "cannot read EMC available freqs without root permissions.");
   }
 
   std::string soc_family = get_soc_family();
@@ -393,7 +403,8 @@ std::vector<long int> get_emc_available_freqs() {
     EMC_MIN_FREQ = "/sys/kernel/debug/tegra_bwmgr/min_rate";
     EMC_MAX_FREQ = "/sys/kernel/debug/tegra_bwmgr/max_rate";
   } else {
-    throw JetsonClocksException("cannot get emc available frequencies. SOC family unsupported.");
+    throw JetsonClocksException(
+        "cannot get emc available frequencies. SOC family unsupported.");
   }
 
   long int min_freq = std::stoi(read_file(EMC_MIN_FREQ));
@@ -403,7 +414,8 @@ std::vector<long int> get_emc_available_freqs() {
 
 long int get_emc_freq() {
   if (!running_as_root()) {
-    throw JetsonClocksException("cannot read EMC freq without root permissions.");
+    throw JetsonClocksException(
+        "cannot read EMC freq without root permissions.");
   }
 
   std::string soc_family = get_soc_family();
@@ -418,7 +430,8 @@ long int get_emc_freq() {
     EMC_UPDATE_FREQ = "/sys/kernel/debug/clk/override.emc/clk_update_rate";
     EMC_FREQ_OVERRIDE = "/sys/kernel/debug/clk/override.emc/clk_state";
   } else {
-    throw JetsonClocksException("cannot get emc frequency. SOC family unsupported.");
+    throw JetsonClocksException(
+        "cannot get emc frequency. SOC family unsupported.");
   }
 
   return std::stoi(read_file(EMC_UPDATE_FREQ));
@@ -426,14 +439,15 @@ long int get_emc_freq() {
 
 void set_emc_freq(long int freq) {
   if (!running_as_root()) {
-    throw JetsonClocksException("cannot set EMC freq without root permissions.");
+    throw JetsonClocksException(
+        "cannot set EMC freq without root permissions.");
   }
 
   auto emc_freqs = get_emc_available_freqs();
   long int min_freq = emc_freqs[0];
-  long int max_freq = emc_freqs[emc_freqs.size()-1];
+  long int max_freq = emc_freqs[emc_freqs.size() - 1];
   if (freq < min_freq || freq > max_freq) {
-      throw JetsonClocksException("emc frequency not in acceptable range.");
+    throw JetsonClocksException("emc frequency not in acceptable range.");
   }
 
   std::string soc_family = get_soc_family();
@@ -448,7 +462,9 @@ void set_emc_freq(long int freq) {
     EMC_UPDATE_FREQ = "/sys/kernel/debug/clk/override.emc/clk_update_rate";
     EMC_FREQ_OVERRIDE = "/sys/kernel/debug/clk/override.emc/clk_state";
   } else {
-    throw JetsonClocksException("cannot set emc frequency with unsupported soc_family" + soc_family + ".");
+    throw JetsonClocksException(
+        "cannot set emc frequency with unsupported soc_family" + soc_family +
+        ".");
   }
 
   write_file(EMC_UPDATE_FREQ, to_string(freq));
@@ -457,7 +473,8 @@ void set_emc_freq(long int freq) {
 
 std::vector<int> get_cpu_ids() {
   if (!running_as_root()) {
-    throw JetsonClocksException("cannot look up CPU ids without root permissions.");
+    throw JetsonClocksException(
+        "cannot look up CPU ids without root permissions.");
   }
 
   // Find all directories in /sys/devices/system/cpu/ ending in cpu[0-9].
@@ -482,14 +499,17 @@ std::vector<int> get_cpu_ids() {
 
 std::vector<long int> get_cpu_available_freqs(int cpu_id) {
   if (!running_as_root()) {
-    throw JetsonClocksException("cannot look up CPU available frequencies without root permissions.");
+    throw JetsonClocksException(
+        "cannot look up CPU available frequencies without root permissions.");
   }
 
   std::string path = "/sys/devices/system/cpu/cpu" + to_string(cpu_id) +
                      "/cpufreq/scaling_available_frequencies";
 
   if (!file_exists(path)) {
-    throw JetsonClocksException("cannot get cpu available frequencies because " + path + " does not exist.");
+    throw JetsonClocksException(
+        "cannot get cpu available frequencies because " + path +
+        " does not exist.");
   }
 
   std::string speedstr = read_file(path);
@@ -507,14 +527,17 @@ std::vector<long int> get_cpu_available_freqs(int cpu_id) {
 
 std::vector<std::string> get_cpu_available_governors(int cpu_id) {
   if (!running_as_root()) {
-    throw JetsonClocksException("cannot look up CPU available governors without root permissions.");
+    throw JetsonClocksException(
+        "cannot look up CPU available governors without root permissions.");
   }
 
   std::string path = "/sys/devices/system/cpu/cpu" + to_string(cpu_id) +
                      "/cpufreq/scaling_available_governors";
 
   if (!file_exists(path)) {
-    throw JetsonClocksException("cannot look up CPU available governors because " + path + " does not exist.");
+    throw JetsonClocksException(
+        "cannot look up CPU available governors because " + path +
+        " does not exist.");
   }
 
   std::string govstr = strip_newline(read_file(path));
@@ -527,14 +550,16 @@ std::vector<std::string> get_cpu_available_governors(int cpu_id) {
 
 std::string get_cpu_governor(int cpu_id) {
   if (!running_as_root()) {
-    throw JetsonClocksException("cannot get cpu governor without root permissions.");
+    throw JetsonClocksException(
+        "cannot get cpu governor without root permissions.");
   }
 
   std::string path = "/sys/devices/system/cpu/cpu" + to_string(cpu_id) +
                      "/cpufreq/scaling_governor";
 
   if (!file_exists(path)) {
-    throw JetsonClocksException("cannot get cpu governor because "+path+" does not exist.");
+    throw JetsonClocksException("cannot get cpu governor because " + path +
+                                " does not exist.");
   }
 
   std::string governor = strip_newline(read_file(path));
@@ -543,14 +568,16 @@ std::string get_cpu_governor(int cpu_id) {
 
 long int get_cpu_min_freq(int cpu_id) {
   if (!running_as_root()) {
-    throw JetsonClocksException("cannot get cpu min. freq. without root permissions.");
+    throw JetsonClocksException(
+        "cannot get cpu min. freq. without root permissions.");
   }
 
   std::string path = "/sys/devices/system/cpu/cpu" + to_string(cpu_id) +
                      "/cpufreq/scaling_min_freq";
 
   if (!file_exists(path)) {
-    throw JetsonClocksException("cannot get min. freq. because "+path+" does not exist.");
+    throw JetsonClocksException("cannot get min. freq. because " + path +
+                                " does not exist.");
   }
 
   long int min_freq = std::stoi(read_file(path));
@@ -560,14 +587,16 @@ long int get_cpu_min_freq(int cpu_id) {
 
 long int get_cpu_max_freq(int cpu_id) {
   if (!running_as_root()) {
-    throw JetsonClocksException("cannot get cpu max. freq. without root permissions.");
+    throw JetsonClocksException(
+        "cannot get cpu max. freq. without root permissions.");
   }
 
   std::string path = "/sys/devices/system/cpu/cpu" + to_string(cpu_id) +
                      "/cpufreq/scaling_max_freq";
 
   if (!file_exists(path)) {
-    throw JetsonClocksException("cannot get max. freq. because "+path+" does not exist.");
+    throw JetsonClocksException("cannot get max. freq. because " + path +
+                                " does not exist.");
   }
 
   long int max_freq = std::stoi(read_file(path));
@@ -577,14 +606,16 @@ long int get_cpu_max_freq(int cpu_id) {
 
 long int get_cpu_cur_freq(int cpu_id) {
   if (!running_as_root()) {
-    throw JetsonClocksException("cannot get cpu current freq. without root permissions.");
+    throw JetsonClocksException(
+        "cannot get cpu current freq. without root permissions.");
   }
 
   std::string path = "/sys/devices/system/cpu/cpu" + to_string(cpu_id) +
                      "/cpufreq/scaling_cur_freq";
 
   if (!file_exists(path)) {
-    throw JetsonClocksException("cannot get current freq. because "+path+" does not exist.");
+    throw JetsonClocksException("cannot get current freq. because " + path +
+                                " does not exist.");
   }
 
   long int cur_freq = std::stoi(read_file(path));
@@ -594,20 +625,24 @@ long int get_cpu_cur_freq(int cpu_id) {
 
 void set_cpu_min_freq(int cpu_id, long int min_freq) {
   if (!running_as_root()) {
-    throw JetsonClocksException("cannot set CPU min. freq. without root permissions.");
+    throw JetsonClocksException(
+        "cannot set CPU min. freq. without root permissions.");
   }
 
   std::string path = "/sys/devices/system/cpu/cpu" + to_string(cpu_id) +
                      "/cpufreq/scaling_min_freq";
   if (!file_writable(path)) {
-    throw JetsonClocksException("cannot set cpu"+to_string(cpu_id)+" min. freq. because "+path+" is not writable.");
+    throw JetsonClocksException("cannot set cpu" + to_string(cpu_id) +
+                                " min. freq. because " + path +
+                                " is not writable.");
   }
 
   auto available_freqs = get_cpu_available_freqs(cpu_id);
 
   if (std::find(available_freqs.begin(), available_freqs.end(), min_freq) ==
       available_freqs.end()) {
-    throw JetsonClocksException(to_string(min_freq)+" is not an available min. freq.");
+    throw JetsonClocksException(to_string(min_freq) +
+                                " is not an available min. freq.");
   }
 
   write_file("/sys/module/qos/parameters/enable", "0");
@@ -622,54 +657,61 @@ void set_cpu_min_freq(int cpu_id, long int min_freq) {
 
 void set_cpu_max_freq(int cpu_id, long int max_freq) {
   if (!running_as_root()) {
-    throw JetsonClocksException("cannot set CPU max. freq. without root permissions.");
+    throw JetsonClocksException(
+        "cannot set CPU max. freq. without root permissions.");
   }
 
   std::string path = "/sys/devices/system/cpu/cpu" + to_string(cpu_id) +
                      "/cpufreq/scaling_max_freq";
   if (!file_writable(path)) {
-    throw JetsonClocksException("cannot set cpu"+to_string(cpu_id)+" max. freq. because "+path+" is not writable.");
+    throw JetsonClocksException("cannot set cpu" + to_string(cpu_id) +
+                                " max. freq. because " + path +
+                                " is not writable.");
   }
 
   auto available_freqs = get_cpu_available_freqs(cpu_id);
 
   if (std::find(available_freqs.begin(), available_freqs.end(), max_freq) ==
       available_freqs.end()) {
-    throw JetsonClocksException(to_string(max_freq)+" is not an available max. freq.");
+    throw JetsonClocksException(to_string(max_freq) +
+                                " is not an available max. freq.");
   }
 
   write_file("/sys/module/qos/parameters/enable", "0");
 
   if (get_soc_family() == "tegra186") {
-        write_file("/sys/kernel/debug/tegra_cpufreq/M_CLUSTER/cc3/enable", "0");
-        write_file("/sys/kernel/debug/tegra_cpufreq/B_CLUSTER/cc3/enable", "0");
+    write_file("/sys/kernel/debug/tegra_cpufreq/M_CLUSTER/cc3/enable", "0");
+    write_file("/sys/kernel/debug/tegra_cpufreq/B_CLUSTER/cc3/enable", "0");
   }
   write_file(path, to_string(max_freq));
 }
 
 void set_cpu_governor(int cpu_id, const std::string &governor) {
   if (!running_as_root()) {
-    throw JetsonClocksException("cannot set CPU governor without root permissions.");
+    throw JetsonClocksException(
+        "cannot set CPU governor without root permissions.");
   }
 
   std::string path = "/sys/devices/system/cpu/cpu" + to_string(cpu_id) +
                      "/cpufreq/scaling_governor";
   if (!file_exists(path)) {
-    throw JetsonClocksException("cannot set cpu"+to_string(cpu_id)+" governor because "+path+" is not writable.");
+    throw JetsonClocksException("cannot set cpu" + to_string(cpu_id) +
+                                " governor because " + path +
+                                " is not writable.");
   }
 
   auto available_govs = get_cpu_available_governors(cpu_id);
 
   if (std::find(available_govs.begin(), available_govs.end(), governor) ==
       available_govs.end()) {
-    throw JetsonClocksException(governor+" is not an available governor.");
+    throw JetsonClocksException(governor + " is not an available governor.");
   }
 
   write_file("/sys/module/qos/parameters/enable", "0");
 
   if (get_soc_family() == "tegra186") {
-        write_file("/sys/kernel/debug/tegra_cpufreq/M_CLUSTER/cc3/enable", "0");
-        write_file("/sys/kernel/debug/tegra_cpufreq/B_CLUSTER/cc3/enable", "0");
+    write_file("/sys/kernel/debug/tegra_cpufreq/M_CLUSTER/cc3/enable", "0");
+    write_file("/sys/kernel/debug/tegra_cpufreq/B_CLUSTER/cc3/enable", "0");
   }
 
   write_file(path, governor);
