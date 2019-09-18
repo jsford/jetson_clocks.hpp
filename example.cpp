@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
       // Test EMC Controls
       auto emc_freqs = get_emc_available_freqs();
       long int min_emc_freq = emc_freqs[0];
-      long int max_emc_freq = emc_freqs[emc_freqs.size()];
+      long int max_emc_freq = emc_freqs[emc_freqs.size()-1];
       std::cout << "EMC Range [" << min_emc_freq << ", " << max_emc_freq << "]\n";
       set_emc_freq(max_emc_freq);
       std::cout << "-------------------------------------------------------------" << std::endl;
