@@ -16,18 +16,28 @@ int main(int argc, char *argv[]) {
 
     std::cout << "SOC FAMILY: " << soc_family << std::endl;
     std::cout << "MACHINE TYPE: " << machine << std::endl;
+    std::cout << "-------------------------------------------------------------"
+              << std::endl;
 
     // Test Fan Control
     set_fan_speed(255);
     unsigned char fan_speed = get_fan_speed();
     std::cout << "FAN SPEED: " << (int)fan_speed << std::endl;
+    std::cout << "-------------------------------------------------------------"
+              << std::endl;
 
     // Test GPU Controls
     auto gpu_freqs = get_gpu_available_freqs();
-
     auto gpu_min_freq = gpu_freqs[0];
     auto gpu_max_freq = gpu_freqs[gpu_freqs.size() - 1];
     set_gpu_freq_range(gpu_min_freq, gpu_max_freq);
+    std::cout << "GPU AVAILABLE FREQS: ";
+    for(const auto& f : gpu_freqs) {
+        std::cout << f/1.e6 << "MHz ";
+    }   
+    std::cout << std::endl;
+    std::cout << "-------------------------------------------------------------"
+              << std::endl;
 
     // Test EMC Controls
     auto emc_freqs = get_emc_available_freqs();
@@ -46,7 +56,7 @@ int main(int argc, char *argv[]) {
       auto available_freqs = get_cpu_available_freqs(cpu_id);
       std::cout << "AVAILABLE FREQS: ";
       for (const auto &f : available_freqs) {
-        std::cout << f << " ";
+        std::cout << f/1.0e3 << "MHz ";
       }
       std::cout << std::endl;
 
