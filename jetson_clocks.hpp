@@ -232,6 +232,8 @@ std::string get_soc_family() {
       soc_family = "tegra210";
     } else if (compat_file.find("nvidia,tegra186") != std::string::npos) {
       soc_family = "tegra186";
+    } else if (compat_file.find("nvidia,tegra194") != std::string::npos) {
+      soc_family = "tegra194";
     }
   } else {
     throw JetsonClocksException("SOC family cannot be found.");
@@ -318,7 +320,10 @@ std::vector<long int> get_gpu_available_freqs() {
   } else if (soc_family == "tegra210") {
     GPU_AVAILABLE_FREQS =
         "/sys/devices/57000000.gpu/devfreq/57000000.gpu/available_frequencies";
-  } else {
+  } else if (soc_family == "tegra194") {
+    GPU_AVAILABLE_FREQS = "/sys/devices/17000000.gv11b/devfreq/17000000.gv11b/"
+                          "available_frequencies";
+  }else {
     throw JetsonClocksException(
         "cannot read gpu available freqs with unsupported SOC family " +
         soc_family + ".");
@@ -378,6 +383,13 @@ void set_gpu_freq_range(long int min_freq, long int max_freq) {
     GPU_MAX_FREQ = "/sys/devices/57000000.gpu/devfreq/57000000.gpu/max_freq";
     GPU_RAIL_GATE =
         "/sys/devices/57000000.gpu/devfreq/57000000.gpu/device/railgate_enable";
+  } else if (soc_family == "tegra194") {
+    GPU_MIN_FREQ =
+        "/sys/devices/17000000.gv11b/devfreq/17000000.gv11b/min_freq";
+    GPU_MAX_FREQ =
+        "/sys/devices/17000000.gv11b/devfreq/17000000.gv11b/max_freq";
+    GPU_RAIL_GATE = "/sys/devices/17000000.gv11b/devfreq/17000000.gv11b/device/"
+                    "railgate_enable";
   } else {
     throw JetsonClocksException(
         "cannot gpu frequency range with unsupported SOC family " + soc_family +
@@ -401,7 +413,7 @@ std::vector<long int> get_emc_available_freqs() {
   std::string EMC_MIN_FREQ = "";
   std::string EMC_MAX_FREQ = "";
 
-  if (soc_family == "tegra186") {
+  if (soc_family == "tegra186" || soc_family == "tegra194") {
     EMC_ISO_CAP = "/sys/kernel/nvpmodel_emc_cap/emc_iso_cap";
     EMC_MIN_FREQ = "/sys/kernel/debug/bpmp/debug/clk/emc/min_rate";
     EMC_MAX_FREQ = "/sys/kernel/debug/bpmp/debug/clk/emc/max_rate";
@@ -435,7 +447,7 @@ long int get_emc_freq() {
   std::string EMC_UPDATE_FREQ = "";
   std::string EMC_FREQ_OVERRIDE = "";
 
-  if (soc_family == "tegra186") {
+  if (soc_family == "tegra186" | soc_family == "tagra194") {
     EMC_UPDATE_FREQ = "/sys/kernel/debug/bpmp/debug/clk/emc/rate";
     EMC_FREQ_OVERRIDE = "/sys/kernel/debug/bpmp/debug/clk/emc/mrq_rate_locked";
   } else if (soc_family == "tegra210") {
@@ -467,7 +479,7 @@ void set_emc_freq(long int freq) {
   std::string EMC_UPDATE_FREQ = "";
   std::string EMC_FREQ_OVERRIDE = "";
 
-  if (soc_family == "tegra186") {
+  if (soc_family == "tegra186" || soc_family == "tegra194") {
     EMC_UPDATE_FREQ = "/sys/kernel/debug/bpmp/debug/clk/emc/rate";
     EMC_FREQ_OVERRIDE = "/sys/kernel/debug/bpmp/debug/clk/emc/mrq_rate_locked";
   } else if (soc_family == "tegra210") {
@@ -663,6 +675,8 @@ void set_cpu_min_freq(int cpu_id, long int min_freq) {
     write_file("/sys/kernel/debug/tegra_cpufreq/M_CLUSTER/cc3/enable", "0");
     write_file("/sys/kernel/debug/tegra_cpufreq/B_CLUSTER/cc3/enable", "0");
   }
+  // The AGX (tegra194) has similar files at /sys/kernel/debug/tegra_cpufreq/CLUSTER[0-3]/cc3/enable.
+  // On my machine, these are all '1', so I am not sure if they should be disabled.
 
   write_file(path, to_string(min_freq));
 }
@@ -695,6 +709,9 @@ void set_cpu_max_freq(int cpu_id, long int max_freq) {
     write_file("/sys/kernel/debug/tegra_cpufreq/M_CLUSTER/cc3/enable", "0");
     write_file("/sys/kernel/debug/tegra_cpufreq/B_CLUSTER/cc3/enable", "0");
   }
+  // The AGX (tegra194) has similar files at /sys/kernel/debug/tegra_cpufreq/CLUSTER[0-3]/cc3/enable.
+  // On my machine, these are all '1', so I am not sure if they should be disabled.
+
   write_file(path, to_string(max_freq));
 }
 
@@ -725,6 +742,8 @@ void set_cpu_governor(int cpu_id, const std::string &governor) {
     write_file("/sys/kernel/debug/tegra_cpufreq/M_CLUSTER/cc3/enable", "0");
     write_file("/sys/kernel/debug/tegra_cpufreq/B_CLUSTER/cc3/enable", "0");
   }
+  // The AGX (tegra194) has similar files at /sys/kernel/debug/tegra_cpufreq/CLUSTER[0-3]/cc3/enable.
+  // On my machine, these are all '1', so I am not sure if they should be disabled.
 
   write_file(path, governor);
 }
