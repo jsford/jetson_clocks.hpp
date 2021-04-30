@@ -83,14 +83,17 @@ std::vector<long int> get_gpu_available_freqs();
 /// Set the GPU min and max frequencies.
 void set_gpu_freq_range(long int min_freq, long int max_freq);
 
-//// Get the current GPU clock freq.
+/// Get the current GPU clock freq.
 long int get_gpu_cur_freq();
 
-//// Get the minimum GPU clock freq.
+/// Get the minimum GPU clock freq.
 long int get_gpu_min_speed();
 
-//// Get the maximum GPU clock freq.
+/// Get the maximum GPU clock freq.
 long int get_gpu_max_speed();
+
+/// Get the current GPU usage.
+int get_gpu_current_usage();
 
 /// Get the allowed EMC clock freqs.
 std::vector<long int> get_emc_available_freqs();
@@ -237,7 +240,7 @@ std::string get_soc_family() {
     soc_family = read_file("/sys/devices/soc0/family");
   } else if (file_exists("/proc/device-tree/compatible")) {
     std::string compat_file = read_file("/proc/device-tree/compatible");
-    if (compat_file.find("nvidia,tegra210") != std::string::npos) {
+    if (compat_file.find("nvidia,tegra210") != std::string::npos) { // Nano
       soc_family = "tegra210";
     } else if (compat_file.find("nvidia,tegra186") != std::string::npos) {
       soc_family = "tegra186";
@@ -506,6 +509,19 @@ long int get_gpu_max_freq() {
   return max_freq;
 }
 
+int get_gpu_current_usage() {
+  std::string soc_family = get_soc_family();
+
+  std::string GPU_USAGE = "";
+  if (soc_family == "tegra210") {
+    GPU_USAGE = "/sys/devices/gpu.0/load";
+  } else {
+    throw JetsonClocksException("cannot get current GPU usage. SOC family unsupported.");
+  }
+
+  return std::stoi(read_file(GPU_USAGE));
+}
+
 std::vector<long int> get_emc_available_freqs() {
   if (!running_as_root()) {
     throw JetsonClocksException(
@@ -529,8 +545,8 @@ std::vector<long int> get_emc_available_freqs() {
       EMC_MAX_FREQ = EMC_ISO_CAP;
     }
   } else if (soc_family == "tegra210") {
-    EMC_MIN_FREQ = "/sys/kernel/debug/tegra_bwmgr/min_rate";
-    EMC_MAX_FREQ = "/sys/kernel/debug/tegra_bwmgr/max_rate";
+    EMC_MIN_FREQ = "/sys/kernel/debug/tegra_bwmgr/emc_min_rate";
+    EMC_MAX_FREQ = "/sys/kernel/debug/tegra_bwmgr/emc_max_rate";
   } else {
     throw JetsonClocksException(
         "cannot get emc available frequencies. SOC family unsupported.");
