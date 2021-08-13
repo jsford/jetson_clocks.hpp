@@ -83,6 +83,18 @@ std::vector<long int> get_gpu_available_freqs();
 /// Set the GPU min and max frequencies.
 void set_gpu_freq_range(long int min_freq, long int max_freq);
 
+/// Get the current GPU clock freq.
+long int get_gpu_cur_freq();
+
+/// Get the minimum GPU clock freq.
+long int get_gpu_min_speed();
+
+/// Get the maximum GPU clock freq.
+long int get_gpu_max_speed();
+
+/// Get the current GPU usage.
+int get_gpu_current_usage();
+
 /// Get the allowed EMC clock freqs.
 std::vector<long int> get_emc_available_freqs();
 
@@ -105,13 +117,13 @@ std::vector<long int> get_cpu_available_freqs(int cpu_id);
 std::string get_cpu_governor(int cpu_id);
 
 /// Get the current minimum clock frequency for a given cpu.
-long int get_cpu_min_speed(int cpu_id);
+long int get_cpu_min_freq(int cpu_id);
 
 /// Get the current maximum clock frequency for a given cpu.
-long int get_cpu_max_speed(int cpu_id);
+long int get_cpu_max_freq(int cpu_id);
 
 /// Get the current clock frequency for a given cpu.
-long int get_cpu_cur_speed(int cpu_id);
+long int get_cpu_cur_freq(int cpu_id);
 
 /// Set the clock governor for a given cpu.
 void set_cpu_governor(int cpu_id, const std::string &gov);
@@ -228,10 +240,12 @@ std::string get_soc_family() {
     soc_family = read_file("/sys/devices/soc0/family");
   } else if (file_exists("/proc/device-tree/compatible")) {
     std::string compat_file = read_file("/proc/device-tree/compatible");
-    if (compat_file.find("nvidia,tegra210") != std::string::npos) {
+    if (compat_file.find("nvidia,tegra210") != std::string::npos) { // Nano
       soc_family = "tegra210";
     } else if (compat_file.find("nvidia,tegra186") != std::string::npos) {
       soc_family = "tegra186";
+    } else if (compat_file.find("nvidia,tegra194") != std::string::npos) {
+      soc_family = "tegra194";
     }
   } else {
     throw JetsonClocksException("SOC family cannot be found.");
@@ -318,7 +332,10 @@ std::vector<long int> get_gpu_available_freqs() {
   } else if (soc_family == "tegra210") {
     GPU_AVAILABLE_FREQS =
         "/sys/devices/57000000.gpu/devfreq/57000000.gpu/available_frequencies";
-  } else {
+  } else if (soc_family == "tegra194") {
+    GPU_AVAILABLE_FREQS = "/sys/devices/17000000.gv11b/devfreq/17000000.gv11b/"
+                          "available_frequencies";
+  }else {
     throw JetsonClocksException(
         "cannot read gpu available freqs with unsupported SOC family " +
         soc_family + ".");
@@ -378,6 +395,13 @@ void set_gpu_freq_range(long int min_freq, long int max_freq) {
     GPU_MAX_FREQ = "/sys/devices/57000000.gpu/devfreq/57000000.gpu/max_freq";
     GPU_RAIL_GATE =
         "/sys/devices/57000000.gpu/devfreq/57000000.gpu/device/railgate_enable";
+  } else if (soc_family == "tegra194") {
+    GPU_MIN_FREQ =
+        "/sys/devices/17000000.gv11b/devfreq/17000000.gv11b/min_freq";
+    GPU_MAX_FREQ =
+        "/sys/devices/17000000.gv11b/devfreq/17000000.gv11b/max_freq";
+    GPU_RAIL_GATE = "/sys/devices/17000000.gv11b/devfreq/17000000.gv11b/device/"
+                    "railgate_enable";
   } else {
     throw JetsonClocksException(
         "cannot gpu frequency range with unsupported SOC family " + soc_family +
@@ -387,6 +411,115 @@ void set_gpu_freq_range(long int min_freq, long int max_freq) {
   write_file(GPU_MIN_FREQ, to_string(min_freq));
   write_file(GPU_MAX_FREQ, to_string(max_freq));
   write_file(GPU_RAIL_GATE, "0");
+}
+
+long int get_gpu_cur_freq() {
+  if (!running_as_root()) {
+    throw JetsonClocksException(
+        "cannot get gpu current freq. without root permissions.");
+  }
+
+  std::string soc_family = get_soc_family();
+
+  std::string PATH = "";
+
+  if (soc_family == "tegra186") { // TODO
+    PATH = "";
+  } else if (soc_family == "tegra210") { // TODO
+    PATH = "";
+  } else if (soc_family == "tegra194") {
+    PATH = "/sys/devices/17000000.gv11b/devfreq/17000000.gv11b/cur_freq";
+  } else {
+    throw JetsonClocksException(
+        "cannot get current gpu frequency with unsupported SOC family " + soc_family +
+        ".");
+  }
+
+  if (!file_exists(PATH)) {
+    throw JetsonClocksException("cannot get current gpu freq. because " + PATH +
+                                " does not exist.");
+  }
+
+  long int cur_freq = std::stoi(read_file(PATH));
+
+  return cur_freq;
+}
+
+long int get_gpu_min_freq() {
+  if (!running_as_root()) {
+    throw JetsonClocksException(
+        "cannot get gpu min freq. without root permissions.");
+  }
+
+  std::string soc_family = get_soc_family();
+
+  std::string PATH = "";
+
+  if (soc_family == "tegra186") { // TODO
+    PATH = "";
+  } else if (soc_family == "tegra210") { // TODO
+    PATH = "";
+  } else if (soc_family == "tegra194") {
+    PATH = "/sys/devices/17000000.gv11b/devfreq/17000000.gv11b/min_freq";
+  } else {
+    throw JetsonClocksException(
+        "cannot get gpu min frequency with unsupported SOC family " + soc_family +
+        ".");
+  }
+
+  if (!file_exists(PATH)) {
+    throw JetsonClocksException("cannot get min gpu freq. because " + PATH +
+                                " does not exist.");
+  }
+
+  long int min_freq = std::stoi(read_file(PATH));
+
+  return min_freq;
+}
+
+long int get_gpu_max_freq() {
+  if (!running_as_root()) {
+    throw JetsonClocksException(
+        "cannot get gpu max freq. without root permissions.");
+  }
+
+  std::string soc_family = get_soc_family();
+
+  std::string PATH = "";
+
+  if (soc_family == "tegra186") { // TODO
+    PATH = "";
+  } else if (soc_family == "tegra210") { // TODO
+    PATH = "";
+  } else if (soc_family == "tegra194") {
+    PATH = "/sys/devices/17000000.gv11b/devfreq/17000000.gv11b/max_freq";
+  } else {
+    throw JetsonClocksException(
+        "cannot get gpu max frequency with unsupported SOC family " + soc_family +
+        ".");
+  }
+
+  if (!file_exists(PATH)) {
+    throw JetsonClocksException("cannot get max gpu freq. because " + PATH +
+                                " does not exist.");
+  }
+
+  long int max_freq = std::stoi(read_file(PATH));
+
+  return max_freq;
+}
+
+int get_gpu_current_usage() {
+  std::string soc_family = get_soc_family();
+
+  std::string GPU_USAGE = "";
+  if (soc_family == "tegra210") {
+    GPU_USAGE = "/sys/devices/gpu.0/load";
+  } else {
+    throw JetsonClocksException("cannot get current GPU usage. SOC family unsupported.");
+  }
+
+  return std::stoi(read_file(GPU_USAGE));
 }
 
 std::vector<long int> get_emc_available_freqs() {
@@ -401,7 +534,7 @@ std::vector<long int> get_emc_available_freqs() {
   std::string EMC_MIN_FREQ = "";
   std::string EMC_MAX_FREQ = "";
 
-  if (soc_family == "tegra186") {
+  if (soc_family == "tegra186" || soc_family == "tegra194") {
     EMC_ISO_CAP = "/sys/kernel/nvpmodel_emc_cap/emc_iso_cap";
     EMC_MIN_FREQ = "/sys/kernel/debug/bpmp/debug/clk/emc/min_rate";
     EMC_MAX_FREQ = "/sys/kernel/debug/bpmp/debug/clk/emc/max_rate";
@@ -412,8 +545,8 @@ std::vector<long int> get_emc_available_freqs() {
       EMC_MAX_FREQ = EMC_ISO_CAP;
     }
   } else if (soc_family == "tegra210") {
-    EMC_MIN_FREQ = "/sys/kernel/debug/tegra_bwmgr/min_rate";
-    EMC_MAX_FREQ = "/sys/kernel/debug/tegra_bwmgr/max_rate";
+    EMC_MIN_FREQ = "/sys/kernel/debug/tegra_bwmgr/emc_min_rate";
+    EMC_MAX_FREQ = "/sys/kernel/debug/tegra_bwmgr/emc_max_rate";
   } else {
     throw JetsonClocksException(
         "cannot get emc available frequencies. SOC family unsupported.");
@@ -435,7 +568,7 @@ long int get_emc_freq() {
   std::string EMC_UPDATE_FREQ = "";
   std::string EMC_FREQ_OVERRIDE = "";
 
-  if (soc_family == "tegra186") {
+  if (soc_family == "tegra186" | soc_family == "tagra194") {
     EMC_UPDATE_FREQ = "/sys/kernel/debug/bpmp/debug/clk/emc/rate";
     EMC_FREQ_OVERRIDE = "/sys/kernel/debug/bpmp/debug/clk/emc/mrq_rate_locked";
   } else if (soc_family == "tegra210") {
@@ -467,7 +600,7 @@ void set_emc_freq(long int freq) {
   std::string EMC_UPDATE_FREQ = "";
   std::string EMC_FREQ_OVERRIDE = "";
 
-  if (soc_family == "tegra186") {
+  if (soc_family == "tegra186" || soc_family == "tegra194") {
     EMC_UPDATE_FREQ = "/sys/kernel/debug/bpmp/debug/clk/emc/rate";
     EMC_FREQ_OVERRIDE = "/sys/kernel/debug/bpmp/debug/clk/emc/mrq_rate_locked";
   } else if (soc_family == "tegra210") {
@@ -626,7 +759,7 @@ long int get_cpu_cur_freq(int cpu_id) {
                      "/cpufreq/scaling_cur_freq";
 
   if (!file_exists(path)) {
-    throw JetsonClocksException("cannot get current freq. because " + path +
+    throw JetsonClocksException("cannot get current cpu freq. because " + path +
                                 " does not exist.");
   }
 
@@ -663,6 +796,8 @@ void set_cpu_min_freq(int cpu_id, long int min_freq) {
     write_file("/sys/kernel/debug/tegra_cpufreq/M_CLUSTER/cc3/enable", "0");
     write_file("/sys/kernel/debug/tegra_cpufreq/B_CLUSTER/cc3/enable", "0");
   }
+  // The AGX (tegra194) has similar files at /sys/kernel/debug/tegra_cpufreq/CLUSTER[0-3]/cc3/enable.
+  // On my machine, these are all '1', so I am not sure if they should be disabled.
 
   write_file(path, to_string(min_freq));
 }
@@ -695,6 +830,9 @@ void set_cpu_max_freq(int cpu_id, long int max_freq) {
     write_file("/sys/kernel/debug/tegra_cpufreq/M_CLUSTER/cc3/enable", "0");
     write_file("/sys/kernel/debug/tegra_cpufreq/B_CLUSTER/cc3/enable", "0");
   }
+  // The AGX (tegra194) has similar files at /sys/kernel/debug/tegra_cpufreq/CLUSTER[0-3]/cc3/enable.
+  // On my machine, these are all '1', so I am not sure if they should be disabled.
+
   write_file(path, to_string(max_freq));
 }
 
@@ -725,6 +863,8 @@ void set_cpu_governor(int cpu_id, const std::string &governor) {
     write_file("/sys/kernel/debug/tegra_cpufreq/M_CLUSTER/cc3/enable", "0");
     write_file("/sys/kernel/debug/tegra_cpufreq/B_CLUSTER/cc3/enable", "0");
   }
+  // The AGX (tegra194) has similar files at /sys/kernel/debug/tegra_cpufreq/CLUSTER[0-3]/cc3/enable.
+  // On my machine, these are all '1', so I am not sure if they should be disabled.
 
   write_file(path, governor);
 }
